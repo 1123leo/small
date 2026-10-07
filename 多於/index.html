@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>Flappy Bird 強化學習專案</title>
+    <style>
+      :root {
+        --ink: #121212;
+        --muted: rgba(18, 18, 18, 0.7);
+        --card: rgba(255, 255, 255, 0.72);
+        --card2: rgba(255, 255, 255, 0.6);
+        --stroke: rgba(18, 18, 18, 0.12);
+        --shadow: 0 18px 45px rgba(0, 0, 0, 0.12);
+        --shadow2: 0 10px 28px rgba(0, 0, 0, 0.1);
+        --accent: #0e6b66;
+        --accent2: #f2a33b;
+        --accent3: #e24b5b;
+        --radius: 18px;
+        --radius2: 12px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background:
+          radial-gradient(1100px 650px at 14% 10%, rgba(14, 107, 102, 0.22), transparent 60%),
+          radial-gradient(900px 620px at 86% 14%, rgba(242, 163, 59, 0.25), transparent 55%),
+          radial-gradient(1200px 750px at 55% 95%, rgba(226, 75, 91, 0.16), transparent 60%),
+          linear-gradient(180deg, #fbf7ef 0%, #f3f6fb 55%, #f6fbf7 100%);
+        font-family:
+          ui-serif,
+          "Iowan Old Style",
+          "Palatino Linotype",
+          Palatino,
+          Georgia,
+          "Times New Roman",
+          "PingFang TC",
+          "Microsoft JhengHei",
+          "Noto Serif TC",
+          serif;
+        overflow-x: hidden;
+      }
+
+      /* Subtle paper texture without images */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background:
+          repeating-linear-gradient(
+            0deg,
+            rgba(0, 0, 0, 0.02) 0px,
+            rgba(0, 0, 0, 0.02) 1px,
+            transparent 1px,
+            transparent 4px
+          ),
+          radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.45), transparent 35%),
+          radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.35), transparent 40%);
+        mix-blend-mode: multiply;
+        opacity: 0.45;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .wrap {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 42px 18px 56px;
+        position: relative;
+      }
+
+      header {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: 1fr;
+        padding: 26px 22px;
+        border: 1px solid var(--stroke);
+        border-radius: var(--radius);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.6));
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(10px);
+        transform: translateY(10px);
+        opacity: 0;
+        animation: rise 600ms ease-out forwards;
+      }
+
+      .kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        width: fit-content;
+        padding: 9px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(14, 107, 102, 0.22);
+        background: linear-gradient(90deg, rgba(14, 107, 102, 0.08), rgba(242, 163, 59, 0.1));
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          "Segoe UI",
+          "PingFang TC",
+          "Microsoft JhengHei",
+          "Noto Sans TC",
+          sans-serif;
+        font-size: 13px;
+        letter-spacing: 0.02em;
+        color: rgba(18, 18, 18, 0.82);
+      }
+
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: conic-gradient(from 180deg, var(--accent), var(--accent2), var(--accent3), var(--accent));
+        box-shadow: 0 0 0 4px rgba(14, 107, 102, 0.08);
+      }
+
+      h1 {
+        margin: 0;
+        line-height: 1.08;
+        font-size: clamp(30px, 4.5vw, 56px);
+        letter-spacing: -0.02em;
+      }
+
+      .sub {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.55;
+        font-size: 16px;
+        max-width: 72ch;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 4px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 12px;
+        border-radius: 999px;
+        border: 1px solid var(--stroke);
+        text-decoration: none;
+        background: rgba(255, 255, 255, 0.72);
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+        transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          "Segoe UI",
+          "PingFang TC",
+          "Microsoft JhengHei",
+          "Noto Sans TC",
+          sans-serif;
+        font-size: 14px;
+      }
+
+      .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 26px rgba(0, 0, 0, 0.1);
+        border-color: rgba(14, 107, 102, 0.28);
+      }
+
+      .btn strong {
+        font-weight: 700;
+      }
+
+      .grid {
+        margin-top: 18px;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+
+      .card {
+        border: 1px solid var(--stroke);
+        border-radius: var(--radius);
+        background: linear-gradient(180deg, var(--card), var(--card2));
+        box-shadow: var(--shadow2);
+        backdrop-filter: blur(10px);
+        overflow: hidden;
+        opacity: 0;
+        transform: translateY(12px);
+      }
+
+      .card.in {
+        opacity: 1;
+        transform: translateY(0);
+        transition: opacity 380ms ease, transform 380ms ease;
+      }
+
+      .card .hd {
+        padding: 16px 18px 0;
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .card h2 {
+        margin: 0;
+        font-size: 18px;
+        letter-spacing: -0.01em;
+      }
+
+      .tag {
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          "Segoe UI",
+          "PingFang TC",
+          "Microsoft JhengHei",
+          "Noto Sans TC",
+          sans-serif;
+        font-size: 12px;
+        color: rgba(18, 18, 18, 0.7);
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(18, 18, 18, 0.1);
+        background: rgba(255, 255, 255, 0.55);
+        white-space: nowrap;
+      }
+
+      .card .bd {
+        padding: 14px 18px 18px;
+      }
+
+      .mono {
+        font-family:
+          ui-monospace,
+          "Cascadia Mono",
+          "SFMono-Regular",
+          Menlo,
+          Consolas,
+          "Liberation Mono",
+          monospace;
+        font-size: 13px;
+      }
+
+      .kbd {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(18, 18, 18, 0.14);
+        background: rgba(255, 255, 255, 0.6);
+      }
+
+      .list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 8px;
+      }
+
+      .list a {
+        text-decoration: none;
+      }
+
+      .item {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        padding: 10px 12px;
+        border-radius: var(--radius2);
+        border: 1px solid rgba(18, 18, 18, 0.1);
+        background: rgba(255, 255, 255, 0.58);
+        transition: transform 120ms ease, border-color 120ms ease;
+      }
+
+      .item:hover {
+        transform: translateY(-1px);
+        border-color: rgba(14, 107, 102, 0.28);
+      }
+
+      .pill {
+        flex: none;
+        width: 34px;
+        height: 34px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, rgba(14, 107, 102, 0.12), rgba(242, 163, 59, 0.12));
+        border: 1px solid rgba(14, 107, 102, 0.18);
+        display: grid;
+        place-items: center;
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          "Segoe UI",
+          "PingFang TC",
+          "Microsoft JhengHei",
+          "Noto Sans TC",
+          sans-serif;
+        font-size: 14px;
+      }
+
+      .item b {
+        display: block;
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          "Segoe UI",
+          "PingFang TC",
+          "Microsoft JhengHei",
+          "Noto Sans TC",
+          sans-serif;
+        font-size: 14px;
+        margin-bottom: 2px;
+      }
+
+      .item span {
+        display: block;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.4;
+      }
+
+      figure {
+        margin: 0;
+      }
+
+      .shot {
+        border-top: 1px solid rgba(18, 18, 18, 0.1);
+        background: radial-gradient(900px 260px at 20% 0%, rgba(14, 107, 102, 0.06), transparent 55%),
+          radial-gradient(700px 240px at 80% 0%, rgba(242, 163, 59, 0.06), transparent 55%);
+        padding: 14px 14px 18px;
+      }
+
+      .shot img {
+        width: 100%;
+        height: auto;
+        display: block;
+        border-radius: 14px;
+        border: 1px solid rgba(18, 18, 18, 0.12);
+        box-shadow: 0 18px 42px rgba(0, 0, 0, 0.14);
+      }
+
+      .note {
+        margin-top: 10px;
+        color: rgba(18, 18, 18, 0.6);
+        font-size: 12px;
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          "Segoe UI",
+          "PingFang TC",
+          "Microsoft JhengHei",
+          "Noto Sans TC",
+          sans-serif;
+        line-height: 1.45;
+      }
+
+      footer {
+        margin-top: 16px;
+        color: rgba(18, 18, 18, 0.55);
+        font-size: 12px;
+        text-align: center;
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          "Segoe UI",
+          "PingFang TC",
+          "Microsoft JhengHei",
+          "Noto Sans TC",
+          sans-serif;
+      }
+
+      @media (min-width: 860px) {
+        header {
+          grid-template-columns: 1.3fr 0.7fr;
+          align-items: start;
+        }
+        .grid {
+          grid-template-columns: 1.2fr 0.8fr;
+          align-items: start;
+        }
+      }
+
+      @keyframes rise {
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div>
+          <div class="kicker"><span class="dot" aria-hidden="true"></span>本機展示頁（不需要伺服器）</div>
+          <h1>Flappy Bird 強化學習專案</h1>
+          <p class="sub">
+            這個資料夾主要是用 Python（Gymnasium / Stable-Baselines3 PPO）做 Flappy Bird 的訓練、測試與模型整理。這頁是方便你快速導覽檔案與成果的
+            <span class="mono kbd">index.html</span>。
+          </p>
+          <div class="actions">
+            <a class="btn" href="test_model.py"><strong>看測試腳本</strong> <span aria-hidden="true">→</span></a>
+            <a class="btn" href="models/"><strong>看模型資料夾</strong> <span aria-hidden="true">→</span></a>
+            <a class="btn" href="results/"><strong>看結果資料夾</strong> <span aria-hidden="true">→</span></a>
+            <a class="btn" href="tb_logs/"><strong>TensorBoard 記錄</strong> <span aria-hidden="true">→</span></a>
+          </div>
+        </div>
+        <div class="mono" style="align-self: stretch">
+          <div
+            style="
+              height: 100%;
+              border: 1px dashed rgba(18, 18, 18, 0.16);
+              border-radius: var(--radius);
+              padding: 14px 14px 12px;
+              background: rgba(255, 255, 255, 0.52);
+            "
+          >
+            <div style="font-weight: 700; margin-bottom: 8px">快速開始</div>
+            <div style="line-height: 1.6">
+              <div><span class="kbd">1</span> 建議用虛擬環境</div>
+              <div><span class="kbd">2</span> 安裝依賴：<span class="kbd">gymnasium</span>、<span class="kbd">flappy_bird_gymnasium</span>、<span class="kbd">stable-baselines3</span></div>
+              <div><span class="kbd">3</span> 測試模型：執行 <span class="kbd">test_model.py</span></div>
+            </div>
+            <div class="note">
+              提醒：這頁面是靜態 HTML，只做導覽與展示，不會直接在瀏覽器裡跑 Python 模型。
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section class="grid" aria-label="content">
+        <div class="card" data-reveal>
+          <div class="hd">
+            <h2>遊戲截圖 / 觀察畫面</h2>
+            <div class="tag">game_screenshot.png</div>
+          </div>
+          <div class="bd">
+            <p class="sub" style="margin: 0 0 12px">
+              如果你是在做簡報或成發展示，這張截圖通常最有用。你也可以把自己的截圖換掉，檔名維持不變就會自動更新。
+            </p>
+          </div>
+          <figure class="shot">
+            <img src="game_screenshot.png" alt="Flappy Bird screenshot" loading="lazy" />
+            <div class="note">如果圖片沒顯示，確認 `game_screenshot.png` 是否在同一層資料夾。</div>
+          </figure>
+        </div>
+
+        <div class="card" data-reveal>
+          <div class="hd">
+            <h2>常用檔案</h2>
+            <div class="tag">scripts</div>
+          </div>
+          <div class="bd">
+            <ul class="list">
+              <li>
+                <a href="test_model.py">
+                  <div class="item">
+                    <div class="pill" aria-hidden="true">PPO</div>
+                    <div>
+                      <b>test_model.py</b>
+                      <span>載入 `best_model` 並跑多個 episode 評估分數。</span>
+                    </div>
+                  </div>
+                </a>
+              </li>
+              <li>
+                <a href="train_ppo%20.py">
+                  <div class="item">
+                    <div class="pill" aria-hidden="true">TRN</div>
+                    <div>
+                      <b>train_ppo .py</b>
+                      <span>訓練主程式（檔名含空白，連結可能依瀏覽器而異）。</span>
+                    </div>
+                  </div>
+                </a>
+              </li>
+              <li>
+                <a href="bird.py">
+                  <div class="item">
+                    <div class="pill" aria-hidden="true">CV</div>
+                    <div>
+                      <b>bird.py</b>
+                      <span>螢幕截圖 + 點擊座標輔助（mss / OpenCV）。</span>
+                    </div>
+                  </div>
+                </a>
+              </li>
+              <li>
+                <a href="models/">
+                  <div class="item">
+                    <div class="pill" aria-hidden="true">ZIP</div>
+                    <div>
+                      <b>models/</b>
+                      <span>模型 zip、checkpoint 與整理後的版本。</span>
+                    </div>
+                  </div>
+                </a>
+              </li>
+              <li>
+                <a href="results/">
+                  <div class="item">
+                    <div class="pill" aria-hidden="true">RES</div>
+                    <div>
+                      <b>results/</b>
+                      <span>評測輸出、log、leaderboard 之類的結果檔。</span>
+                    </div>
+                  </div>
+                </a>
+              </li>
+              <li>
+                <a href="tb_logs/">
+                  <div class="item">
+                    <div class="pill" aria-hidden="true">TB</div>
+                    <div>
+                      <b>tb_logs/</b>
+                      <span>TensorBoard 事件檔（訓練曲線、loss、reward）。</span>
+                    </div>
+                  </div>
+                </a>
+              </li>
+            </ul>
+            <div class="note">
+              Windows 用檔案總管直接雙擊 `index.html` 開啟即可。連結能否打開資料夾，取決於你的瀏覽器對本機檔案的限制。
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        這是專案內建的導覽頁：`index.html`（生成時間：<span id="built"></span>）。
+      </footer>
+    </div>
+
+    <script>
+      (function () {
+        var built = document.getElementById("built");
+        if (built) built.textContent = new Date().toLocaleString();
+
+        // Staggered reveal for cards on load.
+        var cards = document.querySelectorAll("[data-reveal]");
+        for (var i = 0; i < cards.length; i++) {
+          (function (el, delay) {
+            setTimeout(function () {
+              el.classList.add("in");
+            }, delay);
+          })(cards[i], 180 + i * 120);
+        }
+      })();
+    </script>
+  </body>
+</html>

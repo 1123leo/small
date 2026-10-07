@@ -1,0 +1,388 @@
+\documentclass[12pt,a4paper]{ctexart}
+
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{longtable}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\geometry{
+  top=2.5cm,
+  bottom=2.5cm,
+  left=2.5cm,
+  right=2.5cm
+}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=blue
+}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  columns=fullflexible,
+  keepspaces=true,
+  backgroundcolor=\color{gray!8}
+}
+
+\title{基於 PPO 演算法之 Flappy Bird 訓練優化研究：\\以 TensorBoard 分析雷達感測與低維狀態特徵}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section*{摘要}
+
+近年來，強化學習（Reinforcement Learning, RL）廣泛應用於遊戲控制、自主決策與人工智慧領域。其中，近端策略優化（Proximal Policy Optimization, PPO）因具備訓練穩定、實作容易與收斂能力佳等特性，成為常見的強化學習演算法之一。本研究以 Flappy Bird 作為測試環境，建立 PPO 訓練模型，並透過 TensorBoard 觀察訓練過程中的獎勵、存活長度、損失函數、探索程度與策略更新幅度。
+
+本研究比較兩種不同觀測方式：高維雷達感測（Lidar-like Observation）與低維狀態空間（Low-dimensional State Space）。高維模型使用多方向射線取得環境資訊，低維模型則保留小鳥位置、速度與管道距離等核心狀態。透過 TensorBoard 曲線可觀察模型在訓練過程中的收斂趨勢與穩定性差異。整體而言，高維模型可能在早期快速提升獎勵，但曲線震盪較明顯；低維模型雖然提升速度較慢，但訓練變化較平穩，較有利於泛化與策略解釋。
+
+本研究顯示，強化學習模型的表現不應只以最高分數判斷，而應結合 TensorBoard 訓練曲線，從獎勵、長度、損失與探索程度等指標分析模型是否真正穩定學習。
+
+\section{前言}
+
+\subsection{研究背景}
+
+Flappy Bird 是一款具有高操作難度的 2D 遊戲，玩家需控制小鳥穿越連續管道。此遊戲具有即時決策、離散動作、高失敗率與長期累積獎勵等特性，因此常被用作強化學習測試環境。
+
+PPO 屬於策略梯度方法，透過限制策略更新幅度降低訓練崩潰風險。然而，在實際訓練中，模型表現不只受到演算法影響，也受到 Observation 設計、Reward 設計與訓練穩定性的影響。若只觀察最終分數，容易忽略模型是否出現震盪、過早收斂或過度依賴特定環境特徵等問題。
+
+因此，本研究將 TensorBoard 作為主要分析工具，透過訓練過程中的多項曲線，觀察 PPO 模型在 Flappy Bird 環境中的學習狀態。
+
+\subsection{研究目的}
+
+\begin{enumerate}
+  \item 建立基於 PPO 的 Flappy Bird 訓練模型。
+  \item 使用 TensorBoard 監控訓練過程與模型收斂狀況。
+  \item 比較高維雷達感測與低維狀態特徵對訓練穩定性的影響。
+  \item 分析 reward、loss、entropy 與 KL divergence 等指標代表的訓練意義。
+  \item 探討 Observation 設計對泛化能力與策略穩定性的影響。
+\end{enumerate}
+
+\section{PPO 演算法與 Flappy Bird 環境}
+
+\subsection{系統架構}
+
+本研究的訓練流程如下：
+
+\begin{center}
+\fbox{\parbox{0.9\linewidth}{
+\centering
+Flappy Bird 環境 $\rightarrow$ Observation 設計（高維雷達／低維狀態）$\rightarrow$ PPO 神經網路 $\rightarrow$ 動作輸出 $\rightarrow$ 獎勵回饋 $\rightarrow$ 策略更新 $\rightarrow$ TensorBoard 紀錄與分析
+}}
+\end{center}
+
+模型在每一步會根據目前觀測值選擇動作，環境再回傳下一個狀態與獎勵。PPO 依據收集到的 rollout 資料更新策略，TensorBoard 則用來記錄訓練指標，方便後續分析。
+
+\subsection{PPO 演算法}
+
+PPO 的核心概念是限制策略更新幅度，避免模型因參數變動過大而導致訓練不穩定。其剪裁目標函數如下：
+
+\[
+L^{CLIP}(\theta)=
+\mathbb{E}\left[
+\min\left(
+r_t(\theta)\hat{A}_t,
+\operatorname{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t
+\right)
+\right]
+\]
+
+其中：
+
+\begin{itemize}
+  \item $r_t(\theta)$：新策略與舊策略的機率比值。
+  \item $\hat{A}_t$：優勢函數，用來衡量某動作相對於平均表現的好壞。
+  \item $\epsilon$：剪裁範圍，用來限制策略更新幅度。
+\end{itemize}
+
+\subsection{訓練環境與參數}
+
+本研究使用的軟體環境包含：
+
+\begin{itemize}
+  \item Python
+  \item Stable-Baselines3
+  \item Gymnasium
+  \item PyTorch
+  \item TensorBoard
+\end{itemize}
+
+PPO 主要參數如下：
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lll}
+\toprule
+參數 & 設定值 & 說明 \\
+\midrule
+Learning Rate & \texttt{2e-4} & 控制模型更新速度 \\
+Gamma & \texttt{0.99} & 折扣因子，影響長期獎勵權重 \\
+Batch Size & \texttt{256} & 每次訓練批次大小 \\
+n\_steps & \texttt{2048} & 每次 rollout 收集步數 \\
+Entropy Coef & \texttt{0.01} & 鼓勵探索，避免過早收斂 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{獎勵函數設計}
+
+本研究採用以下 Reward 設計：
+
+\begin{table}[h]
+\centering
+\begin{tabular}{ll}
+\toprule
+事件 & Reward \\
+\midrule
+通過管道 & \texttt{+1} \\
+存活 & \texttt{+0.01} \\
+撞擊死亡 & \texttt{-1} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+此外，訓練中加入 entropy bonus 增加探索能力，並透過 reward shaping 協助模型避免只學到固定循環操作。
+
+\section{TensorBoard 訓練監控方法}
+
+\subsection{TensorBoard 的用途}
+
+TensorBoard 是訓練監控與視覺化工具，可用來觀察模型在訓練過程中的表現變化。相較於只看最終分數，TensorBoard 能呈現模型在不同時間點的學習狀態，協助判斷模型是否穩定收斂、是否仍有探索能力，以及策略更新是否過大。
+
+在 Stable-Baselines3 中，可透過 \texttt{tensorboard\_log} 參數指定紀錄資料夾。例如：
+
+\begin{lstlisting}[language=Python]
+model = PPO(
+    "MlpPolicy",
+    env,
+    learning_rate=2e-4,
+    n_steps=2048,
+    batch_size=256,
+    gamma=0.99,
+    ent_coef=0.01,
+    tensorboard_log="./tb_logs/",
+)
+
+model.learn(total_timesteps=100000, tb_log_name="PPO")
+\end{lstlisting}
+
+訓練完成或訓練進行中，可使用以下指令啟動 TensorBoard：
+
+\begin{lstlisting}[language=bash]
+tensorboard --logdir ./tb_logs/
+\end{lstlisting}
+
+\subsection{主要觀察指標}
+
+本研究重點觀察以下 TensorBoard 指標：
+
+\begin{longtable}{lll}
+\toprule
+指標 & 意義 & 分析重點 \\
+\midrule
+\endhead
+\texttt{rollout/ep\_rew\_mean} & 平均回合獎勵 & 判斷模型分數是否提升 \\
+\texttt{rollout/ep\_len\_mean} & 平均回合長度 & 觀察小鳥是否能穩定存活 \\
+\texttt{train/value\_loss} & 價值函數誤差 & 判斷 critic 是否穩定學習 \\
+\texttt{train/policy\_gradient\_loss} & 策略梯度損失 & 觀察策略是否持續更新 \\
+\texttt{train/entropy\_loss} & 探索程度 & 分析模型是否過早收斂 \\
+\texttt{train/approx\_kl} & 新舊策略差異 & 判斷策略更新幅度是否過大 \\
+\texttt{train/clip\_fraction} & 被 PPO 剪裁的比例 & 觀察更新是否過於激烈 \\
+\bottomrule
+\end{longtable}
+
+這些指標能互相補充。例如 reward 上升不一定代表模型穩定，若同時出現 value loss 劇烈震盪或 approx KL 過高，可能代表策略更新過大，後續仍有崩潰風險。
+
+\section{Observation 設計：高維雷達與低維狀態特徵}
+
+\subsection{高維雷達感測模型}
+
+高維模型使用類似 Lidar 的方式進行環境掃描，透過多方向射線取得障礙物與邊界資訊。
+
+主要特徵包含：
+
+\begin{itemize}
+  \item 180 方向射線。
+  \item 障礙物距離。
+  \item 地圖邊界資訊。
+\end{itemize}
+
+此方法能提供較完整的環境輪廓，因此模型可能在訓練早期快速找到得分方式。但高維輸入也可能讓神經網路記住局部圖樣或特定環境特徵，導致 TensorBoard 曲線出現 reward 快速上升後震盪、loss 不穩定或泛化能力不足的現象。
+
+\subsection{低維狀態特徵模型}
+
+低維模型只保留與決策直接相關的核心資訊。
+
+主要特徵包含：
+
+\begin{itemize}
+  \item 小鳥 Y 座標。
+  \item 小鳥垂直速度。
+  \item 與下一個管道的 X 距離。
+  \item 與管道缺口中心的 Y 距離。
+  \item 管道高度資訊。
+\end{itemize}
+
+Observation 維度約為 5 至 12 維。雖然資訊量較少，但更接近控制 Flappy Bird 所需的真實狀態，因此 TensorBoard 曲線通常可用來觀察其是否具有較平穩的 reward、loss 與 entropy 變化。
+
+\subsection{兩種 Observation 比較}
+
+\begin{longtable}{lll}
+\toprule
+比較項目 & 高維雷達感測 & 低維狀態特徵 \\
+\midrule
+\endhead
+資訊量 & 高，包含大量環境掃描資訊 & 低，保留核心決策資訊 \\
+訓練初期表現 & 可能快速提升 & 提升較慢 \\
+曲線穩定性 & 較容易震盪 & 較容易平穩 \\
+過擬合風險 & 較高 & 較低 \\
+泛化能力 & 需透過測試驗證 & 通常較有利 \\
+可解釋性 & 較低 & 較高 \\
+\bottomrule
+\end{longtable}
+
+\section{TensorBoard 實驗結果與分析}
+
+本章以 TensorBoard 曲線作為分析重點。由於本報告不直接加入未驗證的精確數值，因此以下內容以曲線趨勢與可觀察現象進行說明，正式報告中可再補上實際截圖。
+
+\subsection{平均獎勵曲線：\texttt{rollout/ep\_rew\_mean}}
+
+\texttt{rollout/ep\_rew\_mean} 表示多個 episode 的平均獎勵，是判斷模型整體表現最直觀的指標。
+
+\begin{center}
+\fbox{\parbox{0.85\linewidth}{\centering
+圖一預留位置：TensorBoard 平均獎勵曲線（\texttt{rollout/ep\_rew\_mean}）。
+}}
+\end{center}
+
+若曲線穩定上升，代表模型逐漸學會通過管道並提高存活能力。若曲線先快速上升後劇烈下降，可能代表模型在訓練過程中出現策略不穩定或過度依賴特定狀態。高維雷達模型可透過此曲線觀察是否有早期高分但後期震盪的情況；低維模型則可觀察其是否呈現較慢但平穩的提升。
+
+\subsection{平均回合長度：\texttt{rollout/ep\_len\_mean}}
+
+\texttt{rollout/ep\_len\_mean} 表示每回合平均持續步數，可用來觀察小鳥是否能穩定存活。
+
+\begin{center}
+\fbox{\parbox{0.85\linewidth}{\centering
+圖二預留位置：TensorBoard 平均回合長度曲線（\texttt{rollout/ep\_len\_mean}）。
+}}
+\end{center}
+
+在 Flappy Bird 中，回合長度越長通常代表模型越能維持飛行並避免撞擊。若 reward 上升但 ep\_len\_mean 沒有同步提升，可能代表模型只在少數情況得分，而非整體穩定性提升。
+
+\subsection{價值函數與策略損失：\texttt{train/value\_loss}、\texttt{train/policy\_gradient\_loss}}
+
+\texttt{train/value\_loss} 反映 critic 對狀態價值估計的誤差，\texttt{train/policy\_gradient\_loss} 則反映 actor 策略更新的變化。
+
+\begin{center}
+\fbox{\parbox{0.85\linewidth}{\centering
+圖三預留位置：TensorBoard value loss 與 policy loss 曲線（\texttt{train/value\_loss}、\texttt{train/policy\_gradient\_loss}）。
+}}
+\end{center}
+
+若 value loss 長期劇烈震盪，代表模型對狀態價值的估計不穩定。若 policy gradient loss 變化過大，可能表示策略更新不平順。透過這兩條曲線，可以補充 reward 曲線無法呈現的訓練內部狀態。
+
+\subsection{探索程度與 PPO 更新幅度：\texttt{train/entropy\_loss}、\texttt{train/approx\_kl}、\texttt{train/clip\_fraction}}
+
+\texttt{train/entropy\_loss} 可用來觀察模型探索程度。entropy 過快下降時，模型可能太早固定策略，導致探索不足。\texttt{train/approx\_kl} 與 \texttt{train/clip\_fraction} 則可用來檢查 PPO 的策略更新是否過大。
+
+\begin{center}
+\fbox{\parbox{0.85\linewidth}{\centering
+圖四預留位置：TensorBoard entropy、approx KL、clip fraction 曲線（\texttt{train/entropy\_loss}、\texttt{train/approx\_kl}、\texttt{train/clip\_fraction}）。
+}}
+\end{center}
+
+若 approx KL 過高，代表新策略與舊策略差異過大，可能增加訓練不穩定風險。若 clip\_fraction 過高，表示大量更新被 PPO 剪裁，代表模型更新幅度可能過於激烈。這些指標能協助判斷高維模型是否因輸入複雜而出現較不穩定的策略更新。
+
+\subsection{高維與低維模型的 TensorBoard 差異}
+
+\begin{longtable}{lll}
+\toprule
+TensorBoard 觀察項目 & 高維雷達模型可能現象 & 低維狀態模型可能現象 \\
+\midrule
+\endhead
+\texttt{rollout/ep\_rew\_mean} & 早期快速上升，但可能震盪 & 上升較慢，但較平穩 \\
+\texttt{rollout/ep\_len\_mean} & 可能出現不穩定波動 & 較能反映穩定存活 \\
+\texttt{train/value\_loss} & 較可能劇烈變化 & 變化通常較平順 \\
+\texttt{train/entropy\_loss} & 可能較快下降 & 探索衰退較平緩 \\
+\texttt{train/approx\_kl} & 更新幅度可能較大 & 更新較容易控制 \\
+\texttt{train/clip\_fraction} & 被剪裁比例可能較高 & 剪裁比例較穩定 \\
+\bottomrule
+\end{longtable}
+
+\section{討論：訓練穩定性、泛化能力與過擬合}
+
+\subsection{為何不能只看最高分}
+
+在強化學習訓練中，最高分只能代表模型曾經達到某個表現，不代表策略穩定或能泛化到不同情境。若 TensorBoard 顯示 reward 曲線震盪、value loss 不穩定或 entropy 過早下降，代表模型仍可能存在訓練風險。
+
+因此，本研究將 TensorBoard 作為主要分析依據，目的在於觀察模型是否穩定學習，而不是只追求單次高分。
+
+\subsection{高維 Observation 的過擬合風險}
+
+高維 Observation 容易讓模型學到大量環境細節。這些資訊雖然可能幫助模型在特定訓練環境快速得分，但也可能造成以下問題：
+
+\begin{enumerate}
+  \item 神經網路記住局部圖樣。
+  \item 過度依賴特定地圖特徵。
+  \item 策略在環境變化時失效。
+  \item TensorBoard 曲線呈現 reward 或 loss 震盪。
+\end{enumerate}
+
+因此，高維輸入不一定代表更好的學習效果，仍需透過訓練曲線與泛化測試共同判斷。
+
+\subsection{低維 State 的重要性}
+
+好的 State 並非資訊越多越好，而是要包含決策所需的關鍵資訊。低維狀態特徵雖然資料量較少，但更直接反映 Flappy Bird 的控制需求，例如小鳥高度、速度與管道距離。
+
+從 TensorBoard 分析角度來看，若低維模型的 reward、ep\_len\_mean 與 loss 曲線較平穩，代表其策略可能更容易收斂，也更容易解釋。
+
+\subsection{TensorBoard 對訓練優化的幫助}
+
+TensorBoard 不只是顯示結果的工具，也能協助調整訓練設定。例如：
+
+\begin{itemize}
+  \item reward 上升太慢時，可檢查 learning rate、reward shaping 或 observation 設計。
+  \item value loss 劇烈震盪時，可檢查 batch size、n\_steps 或 value function 設定。
+  \item entropy 過早下降時，可調整 entropy coefficient，增加探索能力。
+  \item approx KL 或 clip\_fraction 過高時，可降低 learning rate 或調整 PPO clip range。
+\end{itemize}
+
+透過這些曲線，研究者可以更有根據地改善模型，而不是只依靠反覆嘗試。
+
+\section{結論}
+
+本研究以 PPO 演算法訓練 Flappy Bird 代理，並將 TensorBoard 作為主要分析工具，觀察模型在訓練過程中的獎勵、存活長度、損失函數、探索程度與策略更新幅度。
+
+研究結果與分析方向顯示：
+
+\begin{enumerate}
+  \item TensorBoard 能有效呈現 PPO 訓練過程，而不只顯示最終分數。
+  \item \texttt{rollout/ep\_rew\_mean} 與 \texttt{rollout/ep\_len\_mean} 可用來分析模型表現與存活能力。
+  \item \texttt{train/value\_loss} 與 \texttt{train/policy\_gradient\_loss} 能補充說明模型內部學習是否穩定。
+  \item \texttt{train/entropy\_loss}、\texttt{train/approx\_kl} 與 \texttt{train/clip\_fraction} 可協助判斷探索程度與策略更新幅度。
+  \item 高維雷達模型可能早期提升較快，但需要注意震盪與過擬合風險。
+  \item 低維狀態模型雖然資訊較少，但可能具備較佳穩定性、泛化能力與可解釋性。
+\end{enumerate}
+
+因此，未來在強化學習模型設計中，應避免只以最高分數作為唯一標準，而應結合 TensorBoard 曲線，從訓練穩定性、泛化能力與策略可解釋性等面向進行完整評估。
+
+\section{參考文獻}
+
+\begin{enumerate}
+  \item Schulman, J., et al. Proximal Policy Optimization Algorithms, 2017.
+  \item Sutton, R. S., \& Barto, A. G. Reinforcement Learning: An Introduction.
+  \item Stable-Baselines3 Documentation.
+  \item Gymnasium Documentation.
+  \item PyTorch Official Documentation.
+  \item TensorBoard Documentation.
+\end{enumerate}
+
+\end{document}

@@ -1,0 +1,10 @@
+{
+  "generated_at_utc": "2026-02-23T16:39:30.269908+00:00",
+  "episodes": 100,
+  "mean_score": 0.0,
+  "median_score": 0.0,
+  "max_score": 0.0,
+  "p90_score": 0.0,
+  "std_score": 0.0,
+  "model_path": "models\\cv12_match_180\\final_model.zip"
+}

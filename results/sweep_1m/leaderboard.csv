@@ -1,0 +1,6 @@
+rank,exp_id,peak_max_score,peak_mean_score,peak_p90_score,step_at_peak,seed,best_model_path,result_file
+1,A,5.0,0.8,2.0,500000,42,models\sweep_1m\A\best_score_model.zip,results\sweep_1m\A.jsonl
+2,C,5.0,0.43333333333333335,1.1000000000000014,900000,42,models\sweep_1m\C\best_score_model.zip,results\sweep_1m\C.jsonl
+3,E,5.0,0.43333333333333335,1.1000000000000014,900000,42,models\sweep_1m\E\best_score_model.zip,results\sweep_1m\E.jsonl
+4,B,4.0,0.9333333333333333,2.1000000000000014,850000,42,models\sweep_1m\B\best_score_model.zip,results\sweep_1m\B.jsonl
+5,D,4.0,0.9,3.0,800000,42,models\sweep_1m\D\best_score_model.zip,results\sweep_1m\D.jsonl

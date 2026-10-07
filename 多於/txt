@@ -1,0 +1,29 @@
+clip_range=0.3
+理論大
+ent_coef=0.07
+2048
+1024
+reward 0.05 20 -15
+
+ppo256 接續
+ppo_500plus8000_final, learning_rate=3e-4,clip_range=0.1, ent_coef=0.03 best model
+
+ppo258 reward 20 -15 learning_rate=lr_schedule(1e-3, 3e-4),clip_range=0.1, ent_coef=0.07,     
+
+ppo259 接續
+ppo_500plus8000_final, learning_rate=3e-4,clip_range=0.1, ent_coef=0.04
+
+ppo260  接續 reward 2 -1.5
+ppo_500plus8000_final, learning_rate=3e-4,clip_range=0.1, ent_coef=0.04
+
+
+
+ppo261 reward 0.05 2 -1.5 learning_rate=lr_schedule(1e-3, 3e-4),clip_range=0.1,  ent_=0.07,
+ppo262 reward 5 20 -15 learning_rate=lr_schedule(1e-3, 3e-4),clip_range=0.1,  ent_=0.07,
+
+ppo263 reward 0.05 0.2 -0.15 learning_rate=lr_schedule(1e-3, 3e-4),clip_range=0.1,  ent_=0.07,
+ppo264 reward 0.05 0.2 -0.15 learning_rate=lr_schedule(1e-3, 3e-4),clip_range=0.2,  ent_=0.07,
+ppo265 reward 5 learning_rate=lr_schedule(1e-3, 3e-4),clip_range=0.3,  ent_=0.07,
+
+ppo266 reward 5 learning_rate=lr_schedule(1e-3, 3e-4),clip_range=0.1,  ent_=0.07,
+ppo267 reward 5 learning_rate=lr_schedule(1e-3, 3e-4),clip_range=0.1,  ent_=0.07,
