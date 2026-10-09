@@ -1,0 +1,8 @@
+python -m tensorboard.main --logdir=models\standardized
+git stash
+git pull --rebase
+git stash pop
+git pushgit status
+git pull
+git push
+
