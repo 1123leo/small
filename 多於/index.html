@@ -411,7 +411,7 @@
             <span class="mono kbd">index.html</span>。
           </p>
           <div class="actions">
-            <a class="btn" href="test_model.py"><strong>看測試腳本</strong> <span aria-hidden="true">→</span></a>
+            <a class="btn" href="../evaluate_ppo_state36d_episodes.py"><strong>看測試腳本</strong> <span aria-hidden="true">→</span></a>
             <a class="btn" href="models/"><strong>看模型資料夾</strong> <span aria-hidden="true">→</span></a>
             <a class="btn" href="results/"><strong>看結果資料夾</strong> <span aria-hidden="true">→</span></a>
             <a class="btn" href="tb_logs/"><strong>TensorBoard 記錄</strong> <span aria-hidden="true">→</span></a>
@@ -430,8 +430,8 @@
             <div style="font-weight: 700; margin-bottom: 8px">快速開始</div>
             <div style="line-height: 1.6">
               <div><span class="kbd">1</span> 建議用虛擬環境</div>
-              <div><span class="kbd">2</span> 安裝依賴：<span class="kbd">gymnasium</span>、<span class="kbd">flappy_bird_gymnasium</span>、<span class="kbd">stable-baselines3</span></div>
-              <div><span class="kbd">3</span> 測試模型：執行 <span class="kbd">test_model.py</span></div>
+              <div><span class="kbd">2</span> 安裝依賴：<span class="kbd">torch</span>、<span class="kbd">gymnasium</span>、<span class="kbd">flappy_bird_gymnasium</span>、<span class="kbd">stable-baselines3</span>、<span class="kbd">tensorboard</span>（RAM 量測另需 <span class="kbd">psutil</span>）</div>
+              <div><span class="kbd">3</span> 比較觀測維度：以相同 <span class="kbd">--seed</span> 執行 9D、36D、180D 訓練檔。</div>
             </div>
             <div class="note">
               提醒：這頁面是靜態 HTML，只做導覽與展示，不會直接在瀏覽器裡跑 Python 模型。
@@ -465,23 +465,45 @@
           <div class="bd">
             <ul class="list">
               <li>
-                <a href="test_model.py">
+                <a href="../evaluate_ppo_state36d_episodes.py">
                   <div class="item">
                     <div class="pill" aria-hidden="true">PPO</div>
                     <div>
-                      <b>test_model.py</b>
+                      <b>evaluate_ppo_state36d_episodes.py</b>
                       <span>載入 `best_model` 並跑多個 episode 評估分數。</span>
                     </div>
                   </div>
                 </a>
               </li>
               <li>
-                <a href="train_ppo%20.py">
+                <a href="../train_ppo_obs_180d.py">
                   <div class="item">
                     <div class="pill" aria-hidden="true">TRN</div>
                     <div>
-                      <b>train_ppo .py</b>
-                      <span>訓練主程式（檔名含空白，連結可能依瀏覽器而異）。</span>
+                      <b>train_ppo_obs_180d.py</b>
+                      <span>統一規格訓練：180 維 Lidar observation。</span>
+                    </div>
+                  </div>
+                </a>
+              </li>
+              <li>
+                <a href="../train_ppo_obs_9d.py">
+                  <div class="item">
+                    <div class="pill" aria-hidden="true">TRN</div>
+                    <div>
+                      <b>train_ppo_obs_9d.py</b>
+                      <span>統一規格訓練：9 維單幀狀態特徵。</span>
+                    </div>
+                  </div>
+                </a>
+              </li>
+              <li>
+                <a href="../train_ppo_obs_36d.py">
+                  <div class="item">
+                    <div class="pill" aria-hidden="true">TRN</div>
+                    <div>
+                      <b>train_ppo_obs_36d.py</b>
+                      <span>統一規格訓練：9 維狀態特徵連續四幀堆疊。</span>
                     </div>
                   </div>
                 </a>

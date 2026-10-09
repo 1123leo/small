@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Workflow script: Edit in Markdown, auto-convert to Word
-Usage: python update_report.py
+Usage: python update_ppo_research_report.py
 """
 
 import subprocess
@@ -24,7 +24,7 @@ def update_report():
     
     # Run conversion
     try:
-        result = subprocess.run([sys.executable, 'md_to_docx.py'], 
+        result = subprocess.run([sys.executable, 'convert_ppo_report_to_docx.py'],
                               capture_output=True, text=True, timeout=30)
         if result.returncode == 0:
             print(result.stdout)
@@ -52,7 +52,7 @@ def show_workflow():
    flappy_bird_ppo_report.md
 
 2️⃣  保存後，在終端執行：
-   python update_report.py
+   python update_ppo_research_report.py
 
 3️⃣  自動更新 Word 檔案：
    flappy_bird_ppo_report.docx
@@ -76,5 +76,5 @@ if __name__ == '__main__':
         update_report()
     else:
         print("\n💡 使用方法：")
-        print("   python update_report.py update")
-        print("\n   或直接執行：python md_to_docx.py")
+        print("   python update_ppo_research_report.py update")
+        print("\n   或直接執行：python convert_ppo_report_to_docx.py")
