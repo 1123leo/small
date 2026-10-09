@@ -65,7 +65,7 @@ if len(low_sat) > 0:
     print(f"  S: {low_sat[:, 1].min()}-{low_sat[:, 1].max()} (平均 {low_sat[:, 1].mean():.0f})")
     print(f"  V: {low_sat[:, 2].min()}-{low_sat[:, 2].max()} (平均 {low_sat[:, 2].mean():.0f})")
 
-print("\n💡 根据上面的分析，你可以调整 CNN test gym mss.py 中的:")
+print("\n💡 根据上面的分析，你可以调整 run_ppo_screen_controller_gym.py 中的:")
 print("  BIRD_LOWER = (H_min, S_min, V_min)")
 print("  BIRD_UPPER = (H_max, S_max, V_max)")
 print("  PIPE_LOWER = (H_min, S_min, V_min)")

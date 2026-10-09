@@ -27,7 +27,7 @@ h, w = image.shape[:2]
 
 print(f"图片尺寸: {w}x{h}")
 
-# HSV 阈值 (来自 CNN test gym mss.py)
+# HSV 阈值 (来自 run_ppo_screen_controller_gym.py)
 BIRD_LOWER = np.array([15, 80, 80])
 BIRD_UPPER = np.array([30, 200, 200])
 
