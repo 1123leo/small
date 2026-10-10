@@ -6,3 +6,6 @@ git pushgit status
 git pull
 git push
 
+git commit -am "你的說明文字"
+git pull --rebase --autostash && git push
+
