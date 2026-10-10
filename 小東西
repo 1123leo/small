@@ -1,10 +1,19 @@
 python -m tensorboard.main --logdir=models\standardized
-git stash
-git pull --rebase
-git stash pop
-git pushgit status
-git pull
+# 1. 把所有改動（包含你新建立的檔案）全部加入暫存
+git add .
+
+# 2. 拉取遠端最新程式碼，並自動幫你把剛剛寫的程式疊在最上面
+git pull --rebase --autostash
+
+# 3. 檢查一下狀態，確保程式碼都有乖乖回來（會看到檔案呈現綠色或紅色修改狀態）
+git status
+
+# 4. 把你剛剛寫完的程式正式打包，寫下你的提交訊息
+git commit -m "你的提交訊息（例如：feat: 完成登入功能）"
+
+# 5. 放心推送到遠端伺服器
 git push
+
 
 git commit -am "你的說明文字"
 git pull --rebase --autostash && git push
