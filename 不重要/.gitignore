@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.py[cod]
+
+.history/
+.vscode/
+
+logs/
+tb_logs/
+tb_logs_flappy/
+*.log
+
+.pytest_cache/

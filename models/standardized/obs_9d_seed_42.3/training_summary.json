@@ -1,0 +1,57 @@
+{
+  "observation_mode": "9d",
+  "observation_dimension": 9,
+  "observation_definition": "9 hand-engineered state features from one frame",
+  "use_lidar": false,
+  "frame_stack": 1,
+  "reward": {
+    "per_step": 0.05,
+    "pipe_pass": 20.0,
+    "episode_end": -15.0
+  },
+  "seed": 42,
+  "n_envs": 4,
+  "total_timesteps_requested": 1000000,
+  "total_timesteps_actual": 1007616,
+  "ppo": {
+    "learning_rate": 0.0003,
+    "n_steps": 2048,
+    "batch_size": 256,
+    "n_epochs": 10,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_range": 0.2,
+    "ent_coef": 0.07,
+    "vf_coef": 0.5,
+    "max_grad_norm": 0.5,
+    "hidden_layers": [
+      128,
+      128
+    ],
+    "activation": "Tanh"
+  },
+  "evaluation": {
+    "episodes_per_check": 10,
+    "every_timesteps": 100000,
+    "fixed_seed_base": 10000
+  },
+  "elapsed_wall_seconds_including_evaluation": 260.3969303000049,
+  "environment_steps_per_wall_second": 3869.5387032370904,
+  "peak_process_rss_mb": null,
+  "peak_gpu_allocated_mb": null,
+  "device": "cpu",
+  "system": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 191 Stepping 5, GenuineIntel",
+    "python": "3.12.6",
+    "torch": "2.14.1+cpu",
+    "gymnasium": "1.4.0",
+    "stable_baselines3": "2.9.0",
+    "flappy_bird_gymnasium": "0.4.0"
+  },
+  "notes": [
+    "三種 observation 除表徵外共用獎勵、PPO 超參數、環境數、訓練步數和評估 seeds。",
+    "9D 是單幀人工特徵，36D 是同一組特徵的四幀堆疊，180D 是不同型態的 Lidar；不是單純巢狀資訊量實驗。",
+    "RAM 峰值需安裝 psutil 才會記錄；硬體比較必須在同一台機器及相同執行環境進行。"
+  ]
+}
